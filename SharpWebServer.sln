@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32210.238
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpWebServer", "SharpWebServer\SharpWebServer.csproj", "{4687D34F-C358-4C8D-A0FD-9385FEE59E0D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpWebServerDemo", "SharpWebServerDemo\SharpWebServerDemo.csproj", "{44FC0E8E-A626-4F9B-8656-C6E17FF0A63D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4687D34F-C358-4C8D-A0FD-9385FEE59E0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4687D34F-C358-4C8D-A0FD-9385FEE59E0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4687D34F-C358-4C8D-A0FD-9385FEE59E0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4687D34F-C358-4C8D-A0FD-9385FEE59E0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44FC0E8E-A626-4F9B-8656-C6E17FF0A63D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44FC0E8E-A626-4F9B-8656-C6E17FF0A63D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44FC0E8E-A626-4F9B-8656-C6E17FF0A63D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44FC0E8E-A626-4F9B-8656-C6E17FF0A63D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3237DDAE-02AF-46C2-BC66-2D3D60555456}
+	EndGlobalSection
+EndGlobal
