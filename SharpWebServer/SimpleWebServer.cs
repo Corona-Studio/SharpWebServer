@@ -131,16 +131,15 @@ public class SimpleWebServer : IWebServer
                     continue;
                 }
 
-                var errorThrown = false;
-
+                var handled = false;
+                
                 foreach (var controller in availableControllers)
                 {
                     var controllerMethods = controller.GetType().GetMethods()
                         .Where(m => m.GetCustomAttributes(typeof(HttpAttribute)).FirstOrDefault() != default)
                         .ToList();
 
-                    if (errorThrown)
-                        break;
+                    if(handled) break;
 
                     foreach (var method in controllerMethods)
                     {
@@ -148,20 +147,13 @@ public class SimpleWebServer : IWebServer
                         var attributePath = attribute.Path ?? "/";
                         var apiRoot = _controllers[controller];
 
-                        if (!attribute.Method.Equals(req.HttpMethod, StringComparison.OrdinalIgnoreCase))
-                        {
-                            HandleErrorInternal(context, res);
-                            errorThrown = true;
-                            break;
-                        }
+                        if (!attribute.Method.Equals(req.HttpMethod, StringComparison.OrdinalIgnoreCase)) continue;
 
                         if (!string.IsNullOrEmpty(attribute.RequestContentType) &&
                             !(req.ContentType?.Equals(attribute.RequestContentType,
                                 StringComparison.OrdinalIgnoreCase) ?? false))
                         {
-                            HandleErrorInternal(context, res);
-                            errorThrown = true;
-                            break;
+                            continue;
                         }
 
                         var pathMatchPattern = $"{apiRoot}";
@@ -171,21 +163,11 @@ public class SimpleWebServer : IWebServer
 
                         if (attributePath == "/")
                         {
-                            if (!reqPath.Equals(pathMatchPattern, StringComparison.OrdinalIgnoreCase))
-                            {
-                                HandleErrorInternal(context, res);
-                                errorThrown = true;
-                                break;
-                            }
+                            if (!reqPath.Equals(pathMatchPattern, StringComparison.OrdinalIgnoreCase)) continue;
                         }
                         else
                         {
-                            if (!Regex.IsMatch(reqPath, pathMatchPattern))
-                            {
-                                HandleErrorInternal(context, res);
-                                errorThrown = true;
-                                break;
-                            }
+                            if (!Regex.IsMatch(reqPath, pathMatchPattern)) continue;
                         }
 
                         using var reqStream = req.InputStream;
@@ -257,18 +239,30 @@ public class SimpleWebServer : IWebServer
 
                         if (returnValue is IActionResult acResult)
                         {
-                            using var resWriter = new StreamWriter(res.OutputStream, Encoding.UTF8);
-
                             res.StatusCode = acResult.StatusCode;
-                            res.ContentType = attribute.ResponseContentType;
-
-                            acResult.WriteStreamContent(res.OutputStream);
+                            
+                            if (acResult.HasContent)
+                            {
+                                res.ContentType = attribute.ResponseContentType;
+                                acResult.WriteStreamContent(res);
+                            }
                         }
                         else
                         {
                             res.StatusCode = 200;
                         }
+
+                        handled = true;
+                        res.Close();
+
+                        break;
                     }
+                }
+
+                if (!handled)
+                {
+                    HandleErrorInternal(context, res);
+                    continue;
                 }
 
                 res.Close();
@@ -276,10 +270,6 @@ public class SimpleWebServer : IWebServer
             catch (Exception e)
             {
                 Console.WriteLine(e);
-            }
-            finally
-            {
-                Thread.Sleep(5);
             }
         }
     }
