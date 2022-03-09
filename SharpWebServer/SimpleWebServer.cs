@@ -66,11 +66,15 @@ public class SimpleWebServer : IWebServer
         _controllers.TryRemove(controller, out _);
     }
 
-    public bool GetController<T>(out IController? controller) where T : IController
+    public bool GetController<T>(out T? controller) where T : IController
     {
         var result = _controllers.Keys.FirstOrDefault(c => c.GetType() == typeof(T));
 
-        controller = result;
+        if (result != default)
+            controller = (T) result;
+        else
+            controller = default;
+
         return result != default;
     }
 
@@ -92,6 +96,7 @@ public class SimpleWebServer : IWebServer
 
         res.StatusCode = 404;
         res.ContentLength64 = 0;
+
         res.Close();
     }
 
@@ -104,7 +109,7 @@ public class SimpleWebServer : IWebServer
                 var context = _listener.GetContext();
                 var req = context.Request;
                 var res = context.Response;
-                var reqPath = req.Url?.AbsolutePath ?? "/";
+                var reqPath = (req.Url?.AbsolutePath ?? "/").Trim('/');
 
 #if DEBUG
                 Console.WriteLine(reqPath);
@@ -126,11 +131,16 @@ public class SimpleWebServer : IWebServer
                     continue;
                 }
 
+                var errorThrown = false;
+
                 foreach (var controller in availableControllers)
                 {
                     var controllerMethods = controller.GetType().GetMethods()
                         .Where(m => m.GetCustomAttributes(typeof(HttpAttribute)).FirstOrDefault() != default)
                         .ToList();
+
+                    if (errorThrown)
+                        break;
 
                     foreach (var method in controllerMethods)
                     {
@@ -141,7 +151,8 @@ public class SimpleWebServer : IWebServer
                         if (!attribute.Method.Equals(req.HttpMethod, StringComparison.OrdinalIgnoreCase))
                         {
                             HandleErrorInternal(context, res);
-                            continue;
+                            errorThrown = true;
+                            break;
                         }
 
                         if (!string.IsNullOrEmpty(attribute.RequestContentType) &&
@@ -149,15 +160,32 @@ public class SimpleWebServer : IWebServer
                                 StringComparison.OrdinalIgnoreCase) ?? false))
                         {
                             HandleErrorInternal(context, res);
-                            continue;
+                            errorThrown = true;
+                            break;
                         }
 
-                        var pathMatchPattern = $"{apiRoot}/{Regex.Replace(attributePath.TrimStart('/'), "\\{(\\w+)\\}", "(\\w+)")}";
+                        var pathMatchPattern = $"{apiRoot}";
+                        if (attributePath != "/")
+                            pathMatchPattern +=
+                                $"/{Regex.Replace(attributePath.TrimStart('/'), "\\{(\\w+)\\}", "(\\w+)")}";
 
-                        if (!Regex.IsMatch(reqPath, pathMatchPattern))
+                        if (attributePath == "/")
                         {
-                            HandleErrorInternal(context, res);
-                            continue;
+                            if (!reqPath.Equals(pathMatchPattern, StringComparison.OrdinalIgnoreCase))
+                            {
+                                HandleErrorInternal(context, res);
+                                errorThrown = true;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if (!Regex.IsMatch(reqPath, pathMatchPattern))
+                            {
+                                HandleErrorInternal(context, res);
+                                errorThrown = true;
+                                break;
+                            }
                         }
 
                         using var reqStream = req.InputStream;
@@ -240,10 +268,10 @@ public class SimpleWebServer : IWebServer
                         {
                             res.StatusCode = 200;
                         }
-
-                        res.Close();
                     }
                 }
+
+                res.Close();
             }
             catch (Exception e)
             {

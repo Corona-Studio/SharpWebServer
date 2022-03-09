@@ -8,7 +8,7 @@ public interface IWebServer : IDisposable
 
     public void RegisterController<T>() where T : IController;
     public void UnRegisterController<T>() where T : IController;
-    public bool GetController<T>(out IController? controller) where T : IController;
+    public bool GetController<T>(out T? controller) where T : IController;
 
     public void Start();
     public void Stop();
