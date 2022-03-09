@@ -129,7 +129,7 @@ public class SimpleWebServer : IWebServer
                 foreach (var controller in availableControllers)
                 {
                     var controllerMethods = controller.GetType().GetMethods()
-                        .Where(m => m.GetCustomAttributes().Any(a => a is HttpAttribute))
+                        .Where(m => m.GetCustomAttributes(typeof(HttpAttribute)).FirstOrDefault() != default)
                         .ToList();
 
                     foreach (var method in controllerMethods)
