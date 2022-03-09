@@ -156,12 +156,24 @@ public class SimpleWebServer : IWebServer
                             continue;
                         }
 
-                        var pathMatchPattern = $"{apiRoot}";
-                        if (attributePath != "/")
-                            pathMatchPattern +=
-                                $"/{Regex.Replace(attributePath.TrimStart('/'), "\\{(\\w+)\\}", "(\\w+)")}";
 
-                        if (attributePath == "/")
+                        var attributePathTrimmed = attributePath.TrimStart('/');
+                        var hasReplaceablePattern = Regex.IsMatch(attributePath, "\\{(\\w+)\\}");
+                        var pathMatchPattern = $"{apiRoot}";
+
+                        if (hasReplaceablePattern)
+                        {
+                            pathMatchPattern +=
+                                $"/{Regex.Replace(attributePathTrimmed, "\\{(\\w+)\\}", "(\\w+)")}";
+                        }
+                        else
+                        {
+                            pathMatchPattern += $"/{attributePath}";
+                        }
+
+                        pathMatchPattern = pathMatchPattern.TrimEnd('/');
+
+                        if (!hasReplaceablePattern)
                         {
                             if (!reqPath.Equals(pathMatchPattern, StringComparison.OrdinalIgnoreCase)) continue;
                         }
