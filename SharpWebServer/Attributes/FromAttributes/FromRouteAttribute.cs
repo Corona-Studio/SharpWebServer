@@ -4,5 +4,7 @@ namespace SharpWebServer.Attributes.FromAttributes;
 
 public class FromRouteAttribute : FromAttribute
 {
-    public FromRouteAttribute() : base(FromType.Route){}
+    public FromRouteAttribute() : base(FromType.Route)
+    {
+    }
 }

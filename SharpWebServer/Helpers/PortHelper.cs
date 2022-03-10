@@ -10,7 +10,7 @@ public static class PortHelper
         var l = new TcpListener(IPAddress.Loopback, 0);
 
         l.Start();
-        var port = ((IPEndPoint)l.LocalEndpoint).Port;
+        var port = ((IPEndPoint) l.LocalEndpoint).Port;
         l.Stop();
 
         return port;

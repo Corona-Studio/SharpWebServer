@@ -4,5 +4,7 @@ namespace SharpWebServer.Attributes.FromAttributes;
 
 public class FromQueryAttribute : FromAttribute
 {
-    public FromQueryAttribute() : base(FromType.Query){}
+    public FromQueryAttribute() : base(FromType.Query)
+    {
+    }
 }

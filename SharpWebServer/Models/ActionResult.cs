@@ -1,20 +1,20 @@
-﻿using SharpWebServer.Interfaces;
-using System.Net;
+﻿using System.Net;
 using System.Text.Json;
+using SharpWebServer.Interfaces;
 
 namespace SharpWebServer.Models;
 
 public class ActionResult : IActionResult
 {
-    public int StatusCode { get; }
-    public object? Content { get; }
-    public bool HasContent => Content != null;
-
     public ActionResult(int statusCode, object? returnContent = null)
     {
         StatusCode = statusCode;
         Content = returnContent;
     }
+
+    public int StatusCode { get; }
+    public object? Content { get; }
+    public bool HasContent => Content != null;
 
     public void WriteStreamContent(HttpListenerResponse? res)
     {

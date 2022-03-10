@@ -15,17 +15,15 @@ namespace SharpWebServer;
 
 public class SimpleWebServer : IWebServer
 {
-    private readonly ConcurrentBag<IHandler> _handlers = new();
     private readonly ConcurrentDictionary<IController, string> _controllers = new();
-
-    private readonly Thread _runThread;
+    private readonly ConcurrentBag<IHandler> _handlers = new();
     private readonly HttpListener _listener;
 
-    public string Prefix { get; }
+    private readonly Thread _runThread;
 
     public SimpleWebServer(string prefix)
     {
-        if(string.IsNullOrEmpty(prefix))
+        if (string.IsNullOrEmpty(prefix))
             throw new ArgumentNullException(nameof(prefix));
 
         Prefix = prefix;
@@ -38,6 +36,8 @@ public class SimpleWebServer : IWebServer
             IsBackground = true
         };
     }
+
+    public string Prefix { get; }
 
     public void RegisterHandler<T>() where T : IHandler
     {
@@ -84,6 +84,17 @@ public class SimpleWebServer : IWebServer
         _runThread.Start();
     }
 
+    public void Stop()
+    {
+        _listener.Stop();
+        _listener.Close();
+    }
+
+    public void Dispose()
+    {
+        Stop();
+    }
+
     private void HandleErrorInternal(HttpListenerContext context, HttpListenerResponse res)
     {
         var errorHandler = _handlers.FirstOrDefault(h => h is IErrorHandler);
@@ -103,7 +114,6 @@ public class SimpleWebServer : IWebServer
     private void StartInternal()
     {
         while (_listener.IsListening)
-        {
             try
             {
                 var context = _listener.GetContext();
@@ -120,11 +130,8 @@ public class SimpleWebServer : IWebServer
                     .Select(p => p.Key)
                     .ToList();
 
-                foreach (var handler in _handlers.Where(h => h is not IErrorHandler))
-                {
-                    handler.Handle(context);
-                }
-                
+                foreach (var handler in _handlers.Where(h => h is not IErrorHandler)) handler.Handle(context);
+
                 if (!availableControllers.Any())
                 {
                     HandleErrorInternal(context, res);
@@ -132,18 +139,18 @@ public class SimpleWebServer : IWebServer
                 }
 
                 var handled = false;
-                
+
                 foreach (var controller in availableControllers)
                 {
                     var controllerMethods = controller.GetType().GetMethods()
                         .Where(m => m.GetCustomAttributes(typeof(HttpAttribute)).FirstOrDefault() != default)
                         .ToList();
 
-                    if(handled) break;
+                    if (handled) break;
 
                     foreach (var method in controllerMethods)
                     {
-                        var attribute = (HttpAttribute)method.GetCustomAttributes(typeof(HttpAttribute)).First();
+                        var attribute = (HttpAttribute) method.GetCustomAttributes(typeof(HttpAttribute)).First();
                         var attributePath = attribute.Path ?? "/";
                         var apiRoot = _controllers[controller];
 
@@ -152,9 +159,7 @@ public class SimpleWebServer : IWebServer
                         if (!string.IsNullOrEmpty(attribute.RequestContentType) &&
                             !(req.ContentType?.Equals(attribute.RequestContentType,
                                 StringComparison.OrdinalIgnoreCase) ?? false))
-                        {
                             continue;
-                        }
 
 
                         var attributePathTrimmed = attributePath.TrimStart('/');
@@ -162,14 +167,10 @@ public class SimpleWebServer : IWebServer
                         var pathMatchPattern = $"{apiRoot}";
 
                         if (hasReplaceablePattern)
-                        {
                             pathMatchPattern +=
                                 $"/{Regex.Replace(attributePathTrimmed, "\\{(\\w+)\\}", "(\\w+)")}";
-                        }
                         else
-                        {
                             pathMatchPattern += $"/{attributePath}";
-                        }
 
                         pathMatchPattern = pathMatchPattern.TrimEnd('/');
 
@@ -200,9 +201,10 @@ public class SimpleWebServer : IWebServer
                             switch (fromAttribute.From)
                             {
                                 case FromType.Route:
-                                    if (!routeMatchDic.TryGetValue(para.Name!, out var val) || string.IsNullOrEmpty(val))
+                                    if (!routeMatchDic.TryGetValue(para.Name!, out var val) ||
+                                        string.IsNullOrEmpty(val))
                                     {
-                                        if(!para.HasDefaultValue)
+                                        if (!para.HasDefaultValue)
                                             parameters.Add(null);
 
                                         break;
@@ -252,7 +254,7 @@ public class SimpleWebServer : IWebServer
                         if (returnValue is IActionResult acResult)
                         {
                             res.StatusCode = acResult.StatusCode;
-                            
+
                             if (acResult.HasContent)
                             {
                                 res.ContentType = attribute.ResponseContentType;
@@ -283,17 +285,5 @@ public class SimpleWebServer : IWebServer
             {
                 Console.WriteLine(e);
             }
-        }
-    }
-
-    public void Stop()
-    {
-        _listener.Stop();
-        _listener.Close();
-    }
-
-    public void Dispose()
-    {
-        Stop();
     }
 }

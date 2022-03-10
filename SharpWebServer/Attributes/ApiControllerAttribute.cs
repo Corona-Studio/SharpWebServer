@@ -3,8 +3,6 @@
 [AttributeUsage(AttributeTargets.Class)]
 public class ApiControllerAttribute : Attribute
 {
-    public string ApiRoot { get; }
-
     public ApiControllerAttribute()
     {
         ApiRoot = "/";
@@ -14,4 +12,6 @@ public class ApiControllerAttribute : Attribute
     {
         ApiRoot = apiRoot;
     }
+
+    public string ApiRoot { get; }
 }

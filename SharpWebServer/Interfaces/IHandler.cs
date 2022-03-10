@@ -7,4 +7,6 @@ public interface IHandler
     void Handle(HttpListenerContext context);
 }
 
-public interface IErrorHandler : IHandler{}
+public interface IErrorHandler : IHandler
+{
+}

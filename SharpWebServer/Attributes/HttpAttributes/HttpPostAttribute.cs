@@ -2,5 +2,7 @@
 
 public class HttpPostAttribute : HttpAttribute
 {
-    public HttpPostAttribute() : base("POST"){}
+    public HttpPostAttribute() : base("POST")
+    {
+    }
 }

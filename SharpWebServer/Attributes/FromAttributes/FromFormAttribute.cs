@@ -4,5 +4,7 @@ namespace SharpWebServer.Attributes.FromAttributes;
 
 public class FromFormAttribute : FromAttribute
 {
-    public FromFormAttribute() : base(FromType.Form){}
+    public FromFormAttribute() : base(FromType.Form)
+    {
+    }
 }

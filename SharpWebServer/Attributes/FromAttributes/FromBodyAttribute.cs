@@ -4,5 +4,7 @@ namespace SharpWebServer.Attributes.FromAttributes;
 
 public class FromBodyAttribute : FromAttribute
 {
-    public FromBodyAttribute() : base(FromType.Body){}
+    public FromBodyAttribute() : base(FromType.Body)
+    {
+    }
 }
