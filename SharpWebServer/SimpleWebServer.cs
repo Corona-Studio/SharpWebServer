@@ -52,7 +52,7 @@ public class SimpleWebServer : IWebServer
         if (apiControllerAttribute is not ApiControllerAttribute attribute)
             throw new InvalidDataException(nameof(T));
 
-        var apiRoot = attribute.ApiRoot.TrimStart('/');
+        var apiRoot = attribute.ApiRoot;
 
         _controllers.AddOrUpdate(Activator.CreateInstance<T>(), apiRoot, (_, s) => s);
     }
@@ -114,12 +114,17 @@ public class SimpleWebServer : IWebServer
     private void StartInternal()
     {
         while (_listener.IsListening)
+        {
+            HttpListenerContext? context = null;
+            HttpListenerResponse? res = null;
+
             try
             {
-                var context = _listener.GetContext();
+                context = _listener.GetContext();
                 var req = context.Request;
-                var res = context.Response;
-                var reqPath = (req.Url?.AbsolutePath ?? "/").Trim('/');
+                res = context.Response;
+                var reqPath = (req.Url?.AbsolutePath ?? "/");
+                reqPath = reqPath.Length != 1 ? reqPath.TrimEnd('/') : reqPath;
 
 #if DEBUG
                 Console.WriteLine(reqPath);
@@ -142,17 +147,16 @@ public class SimpleWebServer : IWebServer
 
                 foreach (var controller in availableControllers)
                 {
+                    if (handled) break;
+
                     var controllerMethods = controller.GetType().GetMethods()
                         .Where(m => m.GetCustomAttributes(typeof(HttpAttribute)).FirstOrDefault() != default)
                         .ToList();
 
-                    if (handled) break;
-
                     foreach (var method in controllerMethods)
                     {
-                        var attribute = (HttpAttribute) method.GetCustomAttributes(typeof(HttpAttribute)).First();
+                        var attribute = (HttpAttribute)method.GetCustomAttributes(typeof(HttpAttribute)).First();
                         var attributePath = attribute.Path ?? "/";
-                        var apiRoot = _controllers[controller];
 
                         if (!attribute.Method.Equals(req.HttpMethod, StringComparison.OrdinalIgnoreCase)) continue;
 
@@ -162,25 +166,22 @@ public class SimpleWebServer : IWebServer
                             continue;
 
 
-                        var attributePathTrimmed = attributePath.TrimStart('/');
+                        var attributePathTrimmed = attributePath.Length != 1 ? attributePath.TrimStart('/') : attributePath;
                         var hasReplaceablePattern = Regex.IsMatch(attributePath, "\\{(\\w+)\\}");
-                        var pathMatchPattern = $"{apiRoot}";
 
-                        if (hasReplaceablePattern)
-                            pathMatchPattern +=
-                                $"/{Regex.Replace(attributePathTrimmed, "\\{(\\w+)\\}", "(\\w+)")}";
-                        else
-                            pathMatchPattern += $"/{attributePath}";
+                        var pathMatchPattern = hasReplaceablePattern ? $"/{Regex.Replace(attributePathTrimmed, "\\{(\\w+)\\}", "(\\w+)")}" : attributePath;
+                        pathMatchPattern = pathMatchPattern.Length != 1 ? pathMatchPattern.TrimEnd('/') : pathMatchPattern;
 
-                        pathMatchPattern = pathMatchPattern.TrimEnd('/');
+                        var reqPathTrimmed = $"/{reqPath[_controllers[controller].Length..].TrimStart('/')}";
 
                         if (!hasReplaceablePattern)
                         {
-                            if (!reqPath.Equals(pathMatchPattern, StringComparison.OrdinalIgnoreCase)) continue;
+                            if (!reqPathTrimmed.Equals(pathMatchPattern, StringComparison.OrdinalIgnoreCase)) continue;
                         }
                         else
                         {
-                            if (!Regex.IsMatch(reqPath, pathMatchPattern)) continue;
+                            var match = Regex.Match(reqPathTrimmed, pathMatchPattern);
+                            if (!match.Success || match.Index != 0) continue;
                         }
 
                         using var reqStream = req.InputStream;
@@ -188,7 +189,7 @@ public class SimpleWebServer : IWebServer
 
                         var reqContent = reqStreamReader.ReadToEnd();
 
-                        var routeMatchDic = UrlHelper.GetRouteDic(reqPath, attributePath);
+                        var routeMatchDic = UrlHelper.GetRouteDic(reqPathTrimmed, attributePath);
                         var queryDic = HttpUtility.ParseQueryString(req.Url?.Query ?? string.Empty);
                         var formDic = HttpUtility.ParseQueryString(reqContent);
 
@@ -200,24 +201,10 @@ public class SimpleWebServer : IWebServer
 
                             switch (fromAttribute.From)
                             {
-                                case FromType.Route:
-                                    if (!routeMatchDic.TryGetValue(para.Name!, out var val) ||
-                                        string.IsNullOrEmpty(val))
-                                    {
-                                        if (!para.HasDefaultValue)
-                                            parameters.Add(null);
-
-                                        break;
-                                    }
-
-                                    parameters.Add(Convert.ChangeType(val, para.ParameterType));
-                                    break;
                                 case FromType.Query:
                                     if (string.IsNullOrEmpty(queryDic.Get(para.Name!)))
                                     {
-                                        if (!para.HasDefaultValue)
-                                            parameters.Add(null);
-
+                                        parameters.Add(!para.HasDefaultValue ? null : para.DefaultValue);
                                         break;
                                     }
 
@@ -227,9 +214,7 @@ public class SimpleWebServer : IWebServer
                                     if (req.ContentType != "application/x-www-form-urlencoded" ||
                                         string.IsNullOrEmpty(formDic.Get(para.Name!)))
                                     {
-                                        if (!para.HasDefaultValue)
-                                            parameters.Add(null);
-
+                                        parameters.Add(!para.HasDefaultValue ? null : para.DefaultValue);
                                         break;
                                     }
 
@@ -238,13 +223,22 @@ public class SimpleWebServer : IWebServer
                                 case FromType.Body:
                                     if (req.ContentLength64 == 0)
                                     {
-                                        if (!para.HasDefaultValue)
-                                            parameters.Add(null);
-
+                                        parameters.Add(!para.HasDefaultValue ? null : para.DefaultValue);
                                         break;
                                     }
 
                                     parameters.Add(JsonSerializer.Deserialize(reqContent, para.ParameterType));
+                                    break;
+                                default:
+                                case FromType.Route:
+                                    if (!routeMatchDic.TryGetValue(para.Name!, out var val) ||
+                                        string.IsNullOrEmpty(val))
+                                    {
+                                        parameters.Add(!para.HasDefaultValue ? null : para.DefaultValue);
+                                        break;
+                                    }
+
+                                    parameters.Add(Convert.ChangeType(val, para.ParameterType));
                                     break;
                             }
                         }
@@ -283,7 +277,11 @@ public class SimpleWebServer : IWebServer
             }
             catch (Exception e)
             {
+                if(context == null || res == null) return;
+
+                HandleErrorInternal(context, res);
                 Console.WriteLine(e);
             }
+        }
     }
 }

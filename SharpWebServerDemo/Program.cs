@@ -13,6 +13,7 @@ webServer.RegisterHandler<LogHandler>();
 webServer.RegisterHandler<ErrorHandler>();
 
 webServer.RegisterController<ControllerDemo>();
+webServer.RegisterController<XController>();
 
 webServer.Start();
 

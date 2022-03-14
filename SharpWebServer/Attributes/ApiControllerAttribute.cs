@@ -10,7 +10,7 @@ public class ApiControllerAttribute : Attribute
 
     public ApiControllerAttribute(string apiRoot)
     {
-        ApiRoot = apiRoot;
+        ApiRoot = $"/{apiRoot.Trim('/')}";
     }
 
     public string ApiRoot { get; }
