@@ -19,8 +19,6 @@ public class SimpleWebServer : IWebServer
     private readonly ConcurrentBag<IHandler> _handlers = new();
     private readonly HttpListener _listener;
 
-    private readonly Thread _runThread;
-
     public SimpleWebServer(string prefix)
     {
         if (string.IsNullOrEmpty(prefix))
@@ -30,11 +28,6 @@ public class SimpleWebServer : IWebServer
 
         _listener = new HttpListener();
         _listener.Prefixes.Add(prefix);
-
-        _runThread = new Thread(StartInternal)
-        {
-            IsBackground = true
-        };
     }
 
     public string Prefix { get; }
@@ -81,7 +74,7 @@ public class SimpleWebServer : IWebServer
     public void Start()
     {
         _listener.Start();
-        _runThread.Start();
+        Task.Run(StartInternal);
     }
 
     public void Stop()
