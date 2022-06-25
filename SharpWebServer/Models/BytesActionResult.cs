@@ -20,7 +20,7 @@ public class BytesActionResult : IActionResult
         if (res == null) return;
         if (Content == null) return;
 
-        var content = (byte[]) Content;
+        var content = (byte[])Content;
 
         res.ContentLength64 = content.Length;
 

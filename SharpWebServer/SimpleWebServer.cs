@@ -64,7 +64,7 @@ public class SimpleWebServer : IWebServer
         var result = _controllers.Keys.FirstOrDefault(c => c.GetType() == typeof(T));
 
         if (result != default)
-            controller = (T) result;
+            controller = (T)result;
         else
             controller = default;
 
@@ -116,7 +116,7 @@ public class SimpleWebServer : IWebServer
                 context = _listener.GetContext();
                 var req = context.Request;
                 res = context.Response;
-                var reqPath = (req.Url?.AbsolutePath ?? "/");
+                var reqPath = req.Url?.AbsolutePath ?? "/";
                 reqPath = reqPath.Length != 1 ? reqPath.TrimEnd('/') : reqPath;
 
 #if DEBUG
@@ -159,11 +159,16 @@ public class SimpleWebServer : IWebServer
                             continue;
 
 
-                        var attributePathTrimmed = attributePath.Length != 1 ? attributePath.TrimStart('/') : attributePath;
+                        var attributePathTrimmed =
+                            attributePath.Length != 1 ? attributePath.TrimStart('/') : attributePath;
                         var hasReplaceablePattern = Regex.IsMatch(attributePath, "\\{(\\w+)\\}");
 
-                        var pathMatchPattern = hasReplaceablePattern ? $"/{Regex.Replace(attributePathTrimmed, "\\{(\\w+)\\}", "(\\w+)")}" : attributePath;
-                        pathMatchPattern = pathMatchPattern.Length != 1 ? pathMatchPattern.TrimEnd('/') : pathMatchPattern;
+                        var pathMatchPattern = hasReplaceablePattern
+                            ? $"/{Regex.Replace(attributePathTrimmed, "\\{(\\w+)\\}", "(\\w+)")}"
+                            : attributePath;
+                        pathMatchPattern = pathMatchPattern.Length != 1
+                            ? pathMatchPattern.TrimEnd('/')
+                            : pathMatchPattern;
 
                         var reqPathTrimmed = $"/{reqPath[_controllers[controller].Length..].TrimStart('/')}";
 
@@ -270,7 +275,7 @@ public class SimpleWebServer : IWebServer
             }
             catch (Exception e)
             {
-                if(context == null || res == null) return;
+                if (context == null || res == null) return;
 
                 HandleErrorInternal(context, res);
                 Console.WriteLine(e);

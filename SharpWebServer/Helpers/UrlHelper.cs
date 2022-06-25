@@ -29,7 +29,7 @@ public static class UrlHelper
 
             result.Add(match.Value[1..^1], originalUrl.Substring(match.Index, nextCharIndex - match.Index));
 
-            originalUrl = originalUrl[(originalUrl.IndexOf('/', match.Index))..];
+            originalUrl = originalUrl[originalUrl.IndexOf('/', match.Index)..];
             matchUrl = matchUrl[(match.Index + match.Length + 1)..];
             match = Regex.Match(matchUrl, "\\{(\\w+)\\}");
 
