@@ -1,9 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using System.Text.Json;
 using SharpWebServer;
-using SharpWebServer.Helpers;
 using SharpWebServerDemo;
+using System.Text.Json;
 
 Console.WriteLine("Hello, World!");
 
